@@ -36,19 +36,23 @@ jobs:
           npm cache clean --force
           npm install
 
-      # ✅ IMPORTANT: Codegen generate karna (CMake missing folders issue fix)
-      - name: Generate React Native codegen artifacts
+      - name: Fix gradlew permissions + CRLF
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dos2unix
+          dos2unix android/gradlew
+          chmod +x android/gradlew
+
+      - name: Gradle clean + generate codegen
         run: |
           cd android
-          chmod +x gradlew
           ./gradlew clean
           ./gradlew :app:generateCodegenArtifactsFromSchema
           cd ..
 
-      - name: Build Android APK (Release)
+      - name: Build APK Release
         run: |
           cd android
-          chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
           cd ..
 
