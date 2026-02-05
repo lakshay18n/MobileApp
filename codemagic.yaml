@@ -1,31 +1,58 @@
 workflows:
   android-apk:
-    name: Android APK Build
+    name: RN CLI Android APK (Stable)
+
     max_build_duration: 60
     instance_type: mac_mini_m2
 
     environment:
-      java: 17
       node: 18
+      java: 17
+
+    cache:
+      cache_paths:
+        - ~/.npm
+        - ~/.gradle
 
     scripts:
+      - name: Show versions
+        script: |
+          node -v
+          npm -v
+          java -version
+
+      - name: Clean node + android caches
+        script: |
+          rm -rf node_modules
+          rm -rf android/.gradle
+          rm -rf android/app/.cxx
+          rm -rf android/build
+          rm -rf android/app/build
+
       - name: Install dependencies
         script: |
           npm install
 
-      - name: Build APK
+      - name: Fix gradlew permissions (Linux safe)
+        script: |
+          chmod +x android/gradlew
+          sed -i '' 's/\r$//' android/gradlew || true
+
+      - name: Disable new architecture (safety patch)
+        script: |
+          echo "newArchEnabled=false" >> android/gradle.properties || true
+
+      - name: Gradle clean
         script: |
           cd android
-          chmod +x gradlew
           ./gradlew clean
           cd ..
+
+      - name: Build Release APK
+        script: |
           cd android
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          cd ..
 
     artifacts:
-      - android/app/build/outputs/apk/release/app-release.apk
-
-    publishing:
-      email:
-        recipients:
-          - yourmail@gmail.com
+      - android/app/build/outputs/**/*.apk
