@@ -1,6 +1,6 @@
 workflows:
   android-apk:
-    name: RN CLI Android APK (Stable)
+    name: RN CLI Android APK (Stable Final)
 
     max_build_duration: 60
     instance_type: mac_mini_m2
@@ -33,12 +33,14 @@ workflows:
         script: |
           npm install
 
-      - name: Fix gradlew permissions (Linux safe)
+      # ✅ gradlew permission + line ending safe for mac/linux
+      - name: Fix gradlew permissions
         script: |
-          chmod +x android/gradlew
+          chmod +x android/gradlew || true
           sed -i '' 's/\r$//' android/gradlew || true
 
-      - name: Disable new architecture (safety patch)
+      # ✅ disable new arch → fixes CMake/codegen JNI missing crash
+      - name: Disable new architecture
         script: |
           echo "newArchEnabled=false" >> android/gradle.properties || true
 
@@ -54,5 +56,15 @@ workflows:
           ./gradlew assembleRelease --no-daemon --stacktrace
           cd ..
 
+      # ✅ print apk path to logs (debug visibility)
+      - name: Show built APK files
+        script: |
+          ls -R android/app/build/outputs/apk || true
+
     artifacts:
-      - android/app/build/outputs/**/*.apk
+      - android/app/build/outputs/apk/**/*.apk
+
+    publishing:
+      email:
+        recipients:
+          - your_email_here@example.com
